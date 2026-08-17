@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  artemis:
+    image: apache/activemq-artemis:latest
+    container_name: artemis-broker
+    ports:
+      - "8161:8161"  # Admin console
+      - "61616:61616"  # OpenWire protocol
+      - "5672:5672"   # AMQP protocol
+    environment:
+      ARTEMIS_USERNAME: admin
+      ARTEMIS_PASSWORD: admin
+      ARTEMIS_USER: admin
+      ARTEMIS_PASSWORD_HASH: admin
+    volumes:
+      - artemis_data:/var/lib/artemis-instance
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8161"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  nodered:
+    image: nodered/node-red:latest
+    container_name: nodered-consumer
+    ports:
+      - "1880:1880"  # NodeRed web UI
+    environment:
+      TZ: UTC
+    volumes:
+      - nodered_data:/data
+    depends_on:
+      artemis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:1880/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  artemis_data:
+  nodered_data:

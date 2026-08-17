@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(chmod +x /Users/thomaskusmirczak/Documents/GitHub/IMEC/ArtemisTranslator/test_connection.py)",
+      "Bash(python test_connection.py)",
+      "Bash(chmod +x /Users/thomaskusmirczak/Documents/GitHub/IMEC/ArtemisTranslator/publisher_with_headers.py /Users/thomaskusmirczak/Documents/GitHub/IMEC/ArtemisTranslator/consumer_with_headers.py)",
+      "Bash(chmod +x /Users/thomaskusmirczak/Documents/GitHub/IMEC/ArtemisTranslator/publisher_with_headers_extended.py)"
+    ]
+  }
+}
