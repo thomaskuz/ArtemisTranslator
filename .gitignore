@@ -41,3 +41,7 @@ env/
 # OS
 .DS_Store
 Thumbs.db
+
+# Docker exports (large binary files)
+*.tar
+*.tar.gz
