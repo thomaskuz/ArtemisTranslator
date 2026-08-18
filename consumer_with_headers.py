@@ -46,16 +46,16 @@ class ConsumerWithHeaders(MessagingHandler):
 
         # Display AMQP message properties/headers
         print(f"\nAMQP Headers:")
-        print(f"  Message ID: {msg.id}")
-        print(f"  Subject: {msg.subject}")
-        print(f"  Correlation ID: {msg.correlation_id}")
-        print(f"  Reply-to: {msg.reply_to}")
-        print(f"  Content Type: {msg.content_type}")
-        print(f"  Content Encoding: {msg.content_encoding}")
-        print(f"  Timestamp: {msg.timestamp}")
-        print(f"  TTL (Time-to-live): {msg.ttl}")
-        print(f"  Priority: {msg.priority}")
-        print(f"  User ID: {msg.user_id}")
+        print(f"  Message ID: {getattr(msg, 'id', None)}")
+        print(f"  Subject: {getattr(msg, 'subject', None)}")
+        print(f"  Correlation ID: {getattr(msg, 'correlation_id', None)}")
+        print(f"  Reply-to: {getattr(msg, 'reply_to', None)}")
+        print(f"  Content Type: {getattr(msg, 'content_type', None)}")
+        print(f"  Content Encoding: {getattr(msg, 'content_encoding', None)}")
+        print(f"  Timestamp: {getattr(msg, 'timestamp', None)}")
+        print(f"  TTL (Time-to-live): {getattr(msg, 'ttl', None)}")
+        print(f"  Priority: {getattr(msg, 'priority', None)}")
+        print(f"  User ID: {getattr(msg, 'user_id', None)}")
 
         # Display custom application properties
         if msg.properties:
