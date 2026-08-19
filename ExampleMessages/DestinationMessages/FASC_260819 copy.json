@@ -1,0 +1,41 @@
+{
+  "specversion": "1.0",
+  "type": "imec.event.file_action_status_changed",
+  "source": "urn:imec:ot:artemis:file-transfer-server",
+  "subject": "v1.0/IMEC/Leuven/Cleanroom/Systema/Artemis/Dev/FileActionStatusChanged",
+  "id": "c0c3f1b5-f1aa-4d7a-b651-90f9badaa302",
+  "time": "1787153084961",
+  "datacontenttype": "application/json",
+  "dataschema": "https://schemas.imec.be/imec.event.file_action_status_changed.v1.json",
+  "data": {
+    "header": {
+      "correlationSystem": "CIRCL_2",
+      "correlationId": 62,
+      "publisherSystem": "FILEMANAGER01",
+      "messageType": "FileManagerRequestStatusUpdateMessage",
+      "messageVersion": "0.2.0"
+    },
+    "schemaVersion": "0.2.0",
+    "statusUpdateId": "af9070b2-ff63-4187-a2b5-f0b3fda793a8",
+    "eventTime": "2026-08-19T08:50:07.576439806Z",
+    "sourceSystem": "CIRCL_2",
+    "sourceRequestId": "4aeA3etc-fc37-40cb-b9e7-f305512ec4f0",
+    "originalRequest": {
+      "steps": [
+        {
+          "stepId": "COPY1",
+          "target": {
+            "path": "Pool",
+            "serverConnection": {
+              "connectionName": "temp"
+            }
+          },
+          "stepType": "COPY",
+          "appliesTo": [
+            "Pool/4-1786355381"
+          ]
+        }
+      ],
+      "metadata": {
+        "LOT_ID": "LOT_ID_VALUE",
+        "RECIPE":"RECI...

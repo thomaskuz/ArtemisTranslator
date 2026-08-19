@@ -1,0 +1,32 @@
+{
+  "specversion": "1.0",
+  "type": "imec.event.file_action_status_changed",
+  "source": "urn:imec:ot:artemis:file-transfer-server",
+  "subject": "v1.0/IMEC/Leuven/Cleanroom/Systema/Artemis/Dev/FileActionStatusChanged",
+  "id": "d7363dee-34f2-4296-ac54-a86ae7ae6755",
+  "time": "1782736387284",
+  "datacontenttype": "application/json",
+  "dataschema": "https://schemas.imec.be/imec.event.file_action_status_changed.v1.json",
+  "data": {
+    "EVENT_ID": "FILE_ACTION_STATUS_CHANGED",
+    "CMD": "EVENT_REPORT",
+    "MODULE": "FileTransfer",
+    "APPLICATION": "file-transfer-server",
+    "REQUEST_ID": "f8dd9bd1-3de9-4d85-abc9-26abc308de90",
+    "ACTION_TYPE": "DELETE",
+    "ACTION_ID": "Delete",
+    "STATUS": "SUCCESS",
+    "SOURCE_TYPE": "SMB",
+    "SOURCE_CONNECTION_NAME": "EQUIPMENT_CIRCL",
+    "SOURCE_PATH": "AE6003994/2026-01-26-09-54/X4RNI092PL_PM13_Easy1_Only_WaferLevelImages_AE6003994.001",
+    "TOOL_ID": "CIRCL",
+    "LOT_ID": "AE6003994",
+    "LOT_STEP_ID": "InspectDefect",
+    "RECIPE": "PM13_Easy1_OnlyWaferLevelImages",
+    "FLOW_PATH": "SFLGCIRC_D_EXP/WIS Inspection",
+    "FILE_GROUP_ID": "X4RNI092PL_2026-01-26T00:00:00.000Z",
+    "MEASUREMENT_START": "2026-01-26T09:00:58.868Z",
+    "MEASUREMENT_END": "2026-01-26T09:00:58.868Z",
+    "WAFER_ID": "X4RNI092PL"
+  }
+}
