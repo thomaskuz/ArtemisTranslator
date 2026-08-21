@@ -34,34 +34,34 @@ pip install -r requirements.txt
 
 **Terminal 1: Listen for messages**
 ```bash
-python consumer.py
+python consumer_amqp.py
 ```
 
 **Terminal 2: Send a message**
 ```bash
-python publisher.py
+python publisher_amqp.py
 ```
 
 You should see the message flow! ✅
 
 ## Scripts
 
-### `publisher.py`
+### `publisher_amqp.py`
 Sends a single message to Artemis queue and exits.
 
 ```bash
-python publisher.py
+python publisher_amqp.py
 # Output:
 # [✓] Connected to Artemis
 # [✓] Sender ready for queue: test.queue
 # [✓] Sent: Hello Artemis!
 ```
 
-### `consumer.py`
+### `consumer_amqp.py`
 Listens for messages on queue (runs indefinitely).
 
 ```bash
-python consumer.py
+python consumer_amqp.py
 # Output:
 # [✓] Connected to Artemis
 # [✓] Listening on queue: test.queue

@@ -452,7 +452,7 @@ pip install python-qpid-proton
 
 ### Terminal 1: Start Consumer
 ```bash
-python consumer.py
+python consumer_amqp.py
 ```
 
 Output:
@@ -466,7 +466,7 @@ Consumer is now waiting for messages.
 
 ### Terminal 2: Send a Message
 ```bash
-python publisher.py
+python publisher_amqp.py
 ```
 
 Output:
@@ -590,7 +590,7 @@ on_message() [called for each message]
 ## Next Steps
 
 1. Run both scripts and watch them communicate
-2. Modify the message text in publisher.py
+2. Modify the message text in publisher_amqp.py
 3. Create different queues in Artemis console
 4. Try sending multiple messages
 5. Add custom headers to messages

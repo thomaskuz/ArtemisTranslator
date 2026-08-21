@@ -130,7 +130,7 @@ return msg;
 ### Run the Publisher
 
 ```bash
-python simple_publisher_alternating.py
+python simple_publisher_alternating_amqp.py
 ```
 
 Output shows alternating commanders:
@@ -289,7 +289,7 @@ To filter by multiple properties:
 
 ### Multiple Publishers
 
-Modify `simple_publisher_alternating.py` to add more commanders:
+Modify `simple_publisher_alternating_amqp.py` to add more commanders:
 
 ```python
 self.commanders = ["Thomas", "Alice", "Bob"]  # Add more names

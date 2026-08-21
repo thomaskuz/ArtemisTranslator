@@ -4,7 +4,7 @@ Comprehensive guide to ALL AMQP metadata types with detailed comments showing ex
 
 ## Overview
 
-The `publisher_with_headers_extended.py` script demonstrates **all types of AMQP message metadata** with extensive comments explaining:
+The `publisher_with_headers_extended_amqp.py` script demonstrates **all types of AMQP message metadata** with extensive comments explaining:
 - Visual sections in Artemis console (Headers vs Properties)
 - Logical types within each section
 - Exact paths where each property appears
@@ -14,7 +14,7 @@ This is an **educational version** designed to teach you the complete AMQP messa
 ## Running the Script
 
 ```bash
-python publisher_with_headers_extended.py
+python publisher_with_headers_extended_amqp.py
 ```
 
 Output shows:
@@ -284,12 +284,12 @@ def send_order_message(self):
 
 **Terminal 1:**
 ```bash
-python consumer_with_headers.py
+python consumer_with_headers_amqp.py
 ```
 
 **Terminal 2:**
 ```bash
-python publisher_with_headers_extended.py
+python publisher_with_headers_extended_amqp.py
 ```
 
 Watch both terminal output and Artemis console to see how metadata flows through the system!

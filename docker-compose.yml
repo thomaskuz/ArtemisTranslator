@@ -8,6 +8,8 @@ services:
       - "8161:8161"  # Admin console
       - "61616:61616"  # OpenWire protocol
       - "5672:5672"   # AMQP protocol
+      - "1883:1883"  # MQTT protocol
+      - "61613:61613"  # STOMP protocol
     environment:
       ARTEMIS_USERNAME: admin
       ARTEMIS_PASSWORD: admin

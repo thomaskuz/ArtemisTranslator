@@ -12,10 +12,10 @@ import time
 class PublisherWithHeaders(MessagingHandler):
     """Sends messages with AMQP headers"""
 
-    def __init__(self, url, queue):
+    def __init__(self, url, address):
         super(PublisherWithHeaders, self).__init__()
         self.url = url
-        self.queue = queue
+        self.address = address
         self.sender = None
         self.message_count = 0
         self.last_send_time = 0
@@ -29,12 +29,12 @@ class PublisherWithHeaders(MessagingHandler):
     def on_connection_opened(self, event):
         """Called when connection to broker opens"""
         print(f"[✓] Connected to Artemis")
-        self.sender = event.container.create_sender(event.connection, self.queue)
+        self.sender = event.container.create_sender(event.connection, self.address)
 
     def on_link_opened(self, event):
         """Called when sender link opens"""
         if event.sender:
-            print(f"[✓] Sender ready for queue: {self.queue}")
+            print(f"[✓] Sender ready for address: {self.address}")
             print(f"[!] Sending messages with headers every 5 seconds (Ctrl+C to stop)\n")
             self.last_send_time = time.time()
             self.send_message_with_headers()
@@ -100,13 +100,13 @@ class PublisherWithHeaders(MessagingHandler):
 def main():
     # Configuration
     broker = "amqp://admin:admin@localhost:5672"
-    queue = "test.queue"
+    address = "amqp-mqtt-bridge"
 
     try:
-        handler = PublisherWithHeaders(broker, queue)
+        handler = PublisherWithHeaders(broker, address)
         container = Container(handler)
 
-        print(f"[...] Starting publisher with headers (sending to {queue})...\n")
+        print(f"[...] Starting publisher with headers (sending to {address})...\n")
         container.run()
 
     except KeyboardInterrupt:

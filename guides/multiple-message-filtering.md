@@ -142,7 +142,7 @@ Your NodeRed AMQP Out node should already be configured correctly:
 ### Run the Publisher
 
 ```bash
-python simple_publisher_alternating.py
+python simple_publisher_alternating_amqp.py
 ```
 
 Output:
@@ -241,7 +241,7 @@ To add a third commander (e.g., "Bob"):
 
 ### 1. Update Publisher Script
 
-Edit `simple_publisher_alternating.py`:
+Edit `simple_publisher_alternating_amqp.py`:
 ```python
 self.commanders = ["Thomas", "Alice", "Bob"]
 ```

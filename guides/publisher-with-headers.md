@@ -4,12 +4,12 @@ Learn how to send AMQP messages with custom headers and metadata.
 
 ## Overview
 
-The `publisher_with_headers.py` script sends messages to Artemis every 5 seconds with both **standard AMQP message properties** and **custom application headers**.
+The `publisher_with_headers_amqp.py` script sends messages to Artemis every 5 seconds with both **standard AMQP message properties** and **custom application headers**.
 
 ## Running the Script
 
 ```bash
-python publisher_with_headers.py
+python publisher_with_headers_amqp.py
 ```
 
 Output:
@@ -144,12 +144,12 @@ def send_message_with_headers(self):
 
 **Terminal 1: Consumer**
 ```bash
-python consumer_with_headers.py
+python consumer_with_headers_amqp.py
 ```
 
 **Terminal 2: Publisher**
 ```bash
-python publisher_with_headers.py
+python publisher_with_headers_amqp.py
 ```
 
 The consumer displays all headers from each message!
@@ -185,7 +185,7 @@ Consumer receives and parses
 
 ### Acknowledgment
 
-The publisher doesn't require message acknowledgment — it just sends. The consumer is responsible for acknowledging (in `consumer_with_headers.py`).
+The publisher doesn't require message acknowledgment — it just sends. The consumer is responsible for acknowledging (in `consumer_with_headers_amqp.py`).
 
 ### Timer Accuracy
 
@@ -201,4 +201,4 @@ Change both values if needed, but checking more frequently than sending makes se
 2. View messages in Artemis console to see where headers appear
 3. Customize headers for your use case
 4. Read [headers-structure.md](headers-structure.md) to understand the visual vs logical structure
-5. Try [publisher_with_headers_extended.py](../publisher_with_headers_extended.py) for all metadata types
+5. Try [publisher_with_headers_extended_amqp.py](../publisher_with_headers_extended_amqp.py) for all metadata types

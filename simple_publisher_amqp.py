@@ -13,10 +13,10 @@ import json
 class SimplePublisher(MessagingHandler):
     """Sends simple messages with commander in body"""
 
-    def __init__(self, url, queue):
+    def __init__(self, url, address):
         super(SimplePublisher, self).__init__()
         self.url = url
-        self.queue = queue
+        self.address = address
         self.sender = None
         self.message_count = 0
         self.last_send_time = 0
@@ -30,12 +30,12 @@ class SimplePublisher(MessagingHandler):
     def on_connection_opened(self, event):
         """Called when connection to broker opens"""
         print(f"[✓] Connected to Artemis")
-        self.sender = event.container.create_sender(event.connection, self.queue)
+        self.sender = event.container.create_sender(event.connection, self.address)
 
     def on_link_opened(self, event):
         """Called when sender link opens"""
         if event.sender:
-            print(f"[✓] Sender ready for queue: {self.queue}")
+            print(f"[✓] Sender ready for address: {self.address}")
             print(f"[!] Sending messages every 5 seconds (Ctrl+C to stop)\n")
             self.last_send_time = time.time()
             self.send_simple_message()
@@ -48,7 +48,7 @@ class SimplePublisher(MessagingHandler):
             self.message_count += 1
 
             # Create message body as JSON with commander
-            body_dict = {"commander": "Thomas", "message_number": self.message_count}
+            body_dict = {"color": "Red", "message_number": self.message_count}
             body = json.dumps(body_dict)
 
             # Create and send message
@@ -75,13 +75,13 @@ class SimplePublisher(MessagingHandler):
 
 def main():
     broker = "amqp://admin:admin@localhost:5672"
-    queue = "test.queue"
+    address = "amqp-mqtt-bridge"
 
     try:
-        handler = SimplePublisher(broker, queue)
+        handler = SimplePublisher(broker, address)
         container = Container(handler)
 
-        print(f"[...] Starting simple publisher (sending to {queue})...\n")
+        print(f"[...] Starting simple publisher (sending to {address})...\n")
         container.run()
 
     except KeyboardInterrupt:

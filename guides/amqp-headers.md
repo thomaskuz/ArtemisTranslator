@@ -407,12 +407,12 @@ Use the provided scripts to test:
 
 **Terminal 1: Consumer**
 ```bash
-python consumer_with_headers.py
+python consumer_with_headers_amqp.py
 ```
 
 **Terminal 2: Publisher**
 ```bash
-python publisher_with_headers.py
+python publisher_with_headers_amqp.py
 ```
 
 The consumer will display all headers received from the publisher!

@@ -305,4 +305,4 @@ Properties Section:
 
 - See [publisher-with-headers.md](publisher-with-headers.md) for basic usage
 - See [publisher-with-headers-extended.md](publisher-with-headers-extended.py) for all metadata types with detailed comments
-- Run `publisher_with_headers_extended.py` and check Artemis console to see this structure in action
+- Run `publisher_with_headers_extended_amqp.py` and check Artemis console to see this structure in action

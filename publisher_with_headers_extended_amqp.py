@@ -13,10 +13,10 @@ import time
 class PublisherExtended(MessagingHandler):
     """Sends messages with all types of AMQP metadata"""
 
-    def __init__(self, url, queue):
+    def __init__(self, url, address):
         super(PublisherExtended, self).__init__()
         self.url = url
-        self.queue = queue
+        self.address = address
         self.sender = None
         self.message_count = 0
         self.last_send_time = 0
@@ -30,12 +30,12 @@ class PublisherExtended(MessagingHandler):
     def on_connection_opened(self, event):
         """Called when connection to broker opens"""
         print(f"[✓] Connected to Artemis")
-        self.sender = event.container.create_sender(event.connection, self.queue)
+        self.sender = event.container.create_sender(event.connection, self.address)
 
     def on_link_opened(self, event):
         """Called when sender link opens"""
         if event.sender:
-            print(f"[✓] Sender ready for queue: {self.queue}")
+            print(f"[✓] Sender ready for address: {self.address}")
             print(f"[!] Sending messages with extended headers (Ctrl+C to stop)\n")
             self.last_send_time = time.time()
             self.send_message_extended()
@@ -217,13 +217,13 @@ class PublisherExtended(MessagingHandler):
 def main():
     # Configuration
     broker = "amqp://admin:admin@localhost:5672"
-    queue = "test.queue"
+    address = "amqp-mqtt-bridge"
 
     try:
-        handler = PublisherExtended(broker, queue)
+        handler = PublisherExtended(broker, address)
         container = Container(handler)
 
-        print(f"[...] Starting extended publisher (sending to {queue})...\n")
+        print(f"[...] Starting extended publisher (sending to {address})...\n")
         print("This script demonstrates ALL types of AMQP metadata and where they appear in Artemis:\n")
         print("ARTEMIS CONSOLE HAS 2 VISUAL SECTIONS:")
         print("  1. Headers         → Broker-controlled metadata (priority, ttl, timestamp, etc.)")

@@ -12,10 +12,10 @@ import time
 class Publisher(MessagingHandler):
     """A class that handles sending messages"""
 
-    def __init__(self, url, queue, message_template):
+    def __init__(self, url, address, message_template):
         super(Publisher, self).__init__()
         self.url = url
-        self.queue = queue
+        self.address = address
         self.message_template = message_template
         self.sender = None
         self.message_count = 0
@@ -29,13 +29,13 @@ class Publisher(MessagingHandler):
     def on_connection_opened(self, event):
         """Called when connection to broker opens"""
         print(f"[✓] Connected to Artemis")
-        # Create sender for the queue
-        self.sender = event.container.create_sender(event.connection, self.queue)
+        # Create sender for the address
+        self.sender = event.container.create_sender(event.connection, self.address)
 
     def on_link_opened(self, event):
         """Called when sender link opens"""
         if event.sender:
-            print(f"[✓] Sender ready for queue: {self.queue}")
+            print(f"[✓] Sender ready for address: {self.address}")
             print(f"[!] Sending messages every 5 seconds (Ctrl+C to stop)\n")
             # Schedule first message immediately
             self.last_send_time = time.time()
@@ -57,6 +57,8 @@ class Publisher(MessagingHandler):
         # Check if 5 seconds have passed since last send
         if time.time() - self.last_send_time >= 5:
             self.send_message()
+        # Reschedule timer for next check
+        event.container.schedule(1.0, self)
 
     def on_error(self, event):
         """Called on error"""
@@ -66,12 +68,12 @@ class Publisher(MessagingHandler):
 def main():
     # Configuration
     broker = "amqp://admin:admin@localhost:5672"
-    queue = "test.queue"
+    address = "amqp-mqtt-bridge"
     message_template = "Hello from Artemis"
 
     try:
         # Create publisher handler
-        handler = Publisher(broker, queue, message_template)
+        handler = Publisher(broker, address, message_template)
 
         # Create and run container
         container = Container(handler)
@@ -79,7 +81,7 @@ def main():
         # Schedule timer that checks every 1 second if we should send
         container.schedule(1.0, handler)
 
-        print(f"[...] Starting publisher (sending to {queue})...")
+        print(f"[...] Starting publisher (sending to {address})...")
         container.run()
 
     except KeyboardInterrupt:
