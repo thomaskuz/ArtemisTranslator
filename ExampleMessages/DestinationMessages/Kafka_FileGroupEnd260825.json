@@ -1,0 +1,36 @@
+{
+  "specversion": "1.0",
+  "type": "imec.event.file_action_status_changed",
+  "source": "urn:imec:ot:artemis:file-transfer-server",
+  "subject": "v1.0/IMEC/Leuven/Cleanroom/Systema/Artemis/Dev/FileActionStatusChanged",
+  "id": "7f90f3f6-bc71-49da-9371-606c6c267775",
+  "time": "1787319715609",
+  "datacontenttype": "application/json",
+  "dataschema": "https://schemas.imec.be/imec.event.file_action_status_changed.v1.json",
+  "data": {
+    "CMD": "EVENT_REPORT",
+    "EVENT_ID": "FILE_GROUP_END",
+    "EVENT_NAME": "FileGroupEnd",
+    "MID": "CIRCL_2",
+    "FILE_GROUP_ID": "X4RNI093PL_2026-03-11T10:09:35.245Z_R",
+    "TIMESTAMP": "2026-03-11T10:09:43.780Z",
+    "FILES_IN_GROUP": [
+      "AE6003994/2026-03-11-11-05_1/AE6003994^X4RNI093PL^524437.jpg",
+      "AE6003994^X4RNI093PL^524437.jpg",
+      "AE6003994^X4RNI092PL^524442.jpg",
+      "AE6003994/2026-03-11-11-08_5/AE6003994^X4RNI092PL^524442.jpg",
+      "AE6003994^X4RNI093PL^524439.jpg",
+      "AE6003994/2026-03-11-11-05_1/AE6003994^X4RNI093PL^524439.jpg",
+      "AE6003994/2026-03-11-11-05_1/AE6003994^X4RNI093PL^524440.jpg",
+      "AE6003994^X4RNI093PL^524440.jpg",
+      "AE6003994/2026-03-11-11-08_5/AE6003994^X4RNI092PL^524438.jpg",
+      "AE6003994^X4RNI092PL^524438.jpg",
+      "AE6003994^X4RNI092PL^524441.jpg",
+      "AE6003994/2026-03-11-11-08_5/AE6003994^X4RNI092PL^524441.jpg",
+      "AE6003994/2026-03-11-11-05_1/X4RNI093PL_AE6003994.001",
+      "X4RNI093PL_AE6003994.001",
+      "AE6003994/2026-03-11-11-08_5/X4RNI092PL_AE6003994.001",
+      "X4RNI092PL_AE6003994.001"
+    ]
+  }
+}

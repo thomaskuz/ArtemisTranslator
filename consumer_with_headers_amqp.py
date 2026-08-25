@@ -83,7 +83,7 @@ class ConsumerWithHeaders(MessagingHandler):
 def main():
     # Configuration
     broker = "amqp://admin:admin@localhost:5672"
-    queue = "test.queue"
+    queue = "amqp-mqtt-bridge" #For anycast, only the adress needs to be put here
 
     try:
         handler = ConsumerWithHeaders(broker, queue)
