@@ -13,18 +13,18 @@ class MQTTSubscriber:
         self.broker = broker
         self.port = port
         self.topic = topic
-        self.client = mqtt.Client(client_id="artemis-mqtt-subscriber", protocol=mqtt.MQTTv311)
+        self.client = mqtt.Client(client_id="artemis-mqtt-subscriber", protocol=mqtt.MQTTv5)
         self.client.username_pw_set("admin", "admin")
         self.message_count = 0
 
-    def on_connect(self, client, userdata, flags, rc):
-        if rc == 0:
+    def on_connect(self, client, userdata, connect_flags, reason_code, properties):
+        if reason_code == 0:
             print(f"[✓] Connected to Artemis MQTT ({self.broker}:{self.port})")
             client.subscribe(self.topic)
             print(f"[!] Subscribed to topic: {self.topic}")
             print(f"[!] Waiting for messages (Ctrl+C to stop)\n")
         else:
-            print(f"[✗] Connection failed with code {rc}", file=sys.stderr)
+            print(f"[✗] Connection failed with code {reason_code}", file=sys.stderr)
             sys.exit(1)
 
     def on_message(self, client, userdata, msg):
@@ -35,13 +35,29 @@ class MQTTSubscriber:
         print(f"Topic: {msg.topic}")
         print(f"QoS: {msg.qos}")
 
-        # Try to parse as JSON
+        # Display MQTT properties if available
+        print(f"\nProperties (MQTT Metadata):")
+        if hasattr(msg, 'properties') and msg.properties:
+            props = msg.properties
+            # MQTT v5 UserProperty is a list of tuples
+            if hasattr(props, 'UserProperty') and props.UserProperty:
+                for key, value in props.UserProperty:
+                    print(f"  {key}: {value}")
+            elif hasattr(props, 'user_properties') and props.user_properties:
+                for key, value in props.user_properties:
+                    print(f"  {key}: {value}")
+            else:
+                print(f"  None")
+        else:
+            print(f"  None")
+
+        # Try to parse payload as JSON
         try:
             payload = json.loads(msg.payload.decode())
-            print(f"Payload (JSON):")
+            print(f"\nPayload (JSON):")
             print(json.dumps(payload, indent=2))
         except (json.JSONDecodeError, UnicodeDecodeError):
-            print(f"Payload (Raw):")
+            print(f"\nPayload (Raw):")
             print(msg.payload.decode())
 
         print(f"{'='*70}\n")
@@ -75,7 +91,7 @@ def main():
     # Configuration
     broker = "localhost"
     port = 1883  # Artemis MQTT port
-    topic = "amqp-mqtt-bridge"  # Subscribe to bridge multicast address
+    topic = "fromAppToE3"  # Subscribe to bridge multicast address
 
     print(f"[...] Starting MQTT Subscriber")
     print(f"[...] Will subscribe to: {topic}")

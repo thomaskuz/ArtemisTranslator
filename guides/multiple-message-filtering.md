@@ -142,7 +142,7 @@ Your NodeRed AMQP Out node should already be configured correctly:
 ### Run the Publisher
 
 ```bash
-python simple_publisher_alternating_amqp.py
+python scripts/simple_publisher_alternating_amqp.py
 ```
 
 Output:

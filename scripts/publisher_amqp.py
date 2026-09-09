@@ -68,7 +68,7 @@ class Publisher(MessagingHandler):
 def main():
     # Configuration
     broker = "amqp://admin:admin@localhost:5672"
-    address = "amqp-mqtt-bridge"
+    address = "test.persistent"
     message_template = "Hello from Artemis"
 
     try:

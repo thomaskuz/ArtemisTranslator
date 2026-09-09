@@ -120,7 +120,7 @@ def main():
 ### Terminal 1: Start MQTT Subscriber
 
 ```bash
-python mqtt_subscriber.py
+python scripts/mqtt_subscriber.py
 ```
 
 Expected output:
@@ -138,7 +138,7 @@ Expected output:
 ### Terminal 2: Start AMQP Publisher
 
 ```bash
-python simple_publisher_amqp.py
+python scripts/simple_publisher_amqp.py
 ```
 
 Expected output:
@@ -313,7 +313,7 @@ T=5s   CONSUMER B subscribes to QUEUE
 
 **Publisher script runs:**
 ```bash
-python simple_publisher_amqp.py
+python scripts/simple_publisher_amqp.py
 ```
 
 **Message #1 at 0s:**

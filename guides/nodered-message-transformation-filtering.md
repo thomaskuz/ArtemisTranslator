@@ -130,7 +130,7 @@ return msg;
 ### Run the Publisher
 
 ```bash
-python simple_publisher_alternating_amqp.py
+python scripts/simple_publisher_alternating_amqp.py
 ```
 
 Output shows alternating commanders:
