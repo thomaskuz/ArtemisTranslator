@@ -64,14 +64,9 @@ class PublisherExtended(MessagingHandler):
             # ========================================
 
             # Message identifier - unique ID for this message
-            # Visual: Artemis Console → Headers section > "userID"
-            # Logical Type: Standard AMQP (but shows in Headers section)
+            # Visual: Artemis Console → Headers section > "ID"
+            # Logical Type: Standard AMQP Message Property
             msg.id = f"msg-{self.message_count}"
-
-            # User identifier - who created/sent this message
-            # Visual: Artemis Console → Headers section > "userID"
-            # Logical Type: Standard AMQP (but shows in Headers section)
-            msg.user_id = "admin"
 
             # Subject - topic/title of the message
             # Visual: Artemis Console → Properties section > "properties.subject"
@@ -115,10 +110,11 @@ class PublisherExtended(MessagingHandler):
             # Logical Type: Broker Metadata
             msg.ttl = 300000  # 5 minutes
 
-            # Timestamp - when message was created
-            # Visual: Artemis Console → Headers section > "timestamp"
-            # Logical Type: Broker Metadata
-            msg.timestamp = int(time.time() * 1000)  # milliseconds
+            # Timestamp - when message was created (in milliseconds)
+            # Note: Set in application properties instead of broker metadata
+            # Visual: Artemis Console → Properties section > "timestamp"
+            # Logical Type: Custom Application Properties
+            timestamp_ms = int(time.time() * 1000)
 
             # ========================================
             # CUSTOM APPLICATION PROPERTIES
@@ -133,7 +129,7 @@ class PublisherExtended(MessagingHandler):
             # Custom user header
             # Visual: Artemis Console → Properties section > "applicationProperties.commander"
             # Logical Type: Custom Application Properties
-            msg.properties["commander"] = "Thomas"
+            msg.properties["color"] = "Red"
 
             # Business logic headers
             # Visual: Artemis Console → Properties section > "applicationProperties.order_id"
@@ -154,7 +150,7 @@ class PublisherExtended(MessagingHandler):
             # Visual: Artemis Console → Properties section > "applicationProperties.trace_id"
             # Logical Type: Custom Application Properties
             msg.properties["trace_id"] = f"trace-{self.message_count}"
-            msg.properties["timestamp"] = str(time.time())
+            msg.properties["timestamp_ms"] = timestamp_ms
             msg.properties["retry_count"] = "0"
 
             # ========================================
@@ -177,7 +173,6 @@ class PublisherExtended(MessagingHandler):
             print(f"\nAMQP MESSAGE PROPERTIES")
             print(f"Visual Section: Properties | Logical Type: Standard AMQP (properties.*)")
             print(f"  ID: {msg.id}")
-            print(f"  User ID: {msg.user_id}")
             print(f"  Subject: {msg.subject}")
             print(f"  Reply-to: {msg.reply_to}")
             print(f"  Correlation ID: {msg.correlation_id}")
@@ -188,7 +183,6 @@ class PublisherExtended(MessagingHandler):
             print(f"Visual Section: Headers | Logical Type: Broker-controlled Metadata")
             print(f"  Priority: {msg.priority}")
             print(f"  TTL: {msg.ttl} ms")
-            print(f"  Timestamp: {msg.timestamp}")
 
             print(f"\nCUSTOM APPLICATION PROPERTIES")
             print(f"Visual Section: Properties | Logical Type: Custom (applicationProperties.*)")
@@ -217,7 +211,7 @@ class PublisherExtended(MessagingHandler):
 def main():
     # Configuration
     broker = "amqp://admin:admin@localhost:5672"
-    address = "amqp-mqtt-bridge"
+    address = "AMQP.MQTT.FAB.TEST"
 
     try:
         handler = PublisherExtended(broker, address)

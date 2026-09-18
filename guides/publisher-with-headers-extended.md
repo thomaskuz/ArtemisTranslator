@@ -104,7 +104,7 @@ Properties
 #### Type B: Custom Application Properties (`applicationProperties.*`)
 These are your own custom headers:
 ```python
-msg.properties["commander"] = "Thomas"
+msg.properties["color"] = "Red"
 msg.properties["order_id"] = "ORD-001"
 msg.properties["trace_id"] = "trace-123"
 msg.properties["custom_key"] = "custom_value"
@@ -113,7 +113,7 @@ msg.properties["custom_key"] = "custom_value"
 Shows in Artemis as:
 ```
 Properties
-├── applicationProperties.commander
+├── applicationProperties.color
 ├── applicationProperties.order_id
 ├── applicationProperties.trace_id
 └── applicationProperties.custom_key

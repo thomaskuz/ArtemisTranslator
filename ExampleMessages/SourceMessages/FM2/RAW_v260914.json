@@ -1,0 +1,52 @@
+{
+  "header": {
+      "messageType": "FileManagerFileStepStatusUpdateMessage",
+      "correlationId": "12",
+      "messageVersion": "0.2.0",
+      "publisherSystem": "FILEMANAGER01",
+      "correlationSystem": "CIRCL_2"
+  },
+  "result": {
+      "success": true
+  },
+  "status": "FINISHED",
+  "metadata": {
+      "LOT_ID": "LOT_ID_VALUE",
+      "RECIPE": "RECIPE_VALUE",
+      "TOOL_ID": "KLA_CIRCLE",
+      "WAFER_ID": "WAFER_ID_VALUE",
+      "FLOW_PATH": "FLOW_PATH_VALUE",
+      "LOT_STEP_ID": "LOT_STEP_ID_VALUE",
+      "FILE_GROUP_ID": "FILE_GROUP_ID_VALUE",
+      "MEASUREMENT_END": "2025-05-08T10:15:57.964Z",
+      "MEASUREMENT_START": "2025-05-08T10:15:37.714Z"
+  },
+  "stepType": "COPY",
+  "eventTime": "2026-09-11T12:06:09.450799845Z",
+  "retryInfo": {
+      "attempt": 1,
+      "actionId": "3028",
+      "actionType": "CopyFile",
+      "maxAttempts": 1
+  },
+  "startedAt": "2026-09-11T12:06:06.267276Z",
+  "artifactId": "Pool/10",
+  "durationMs": 3178,
+  "finishedAt": "2026-09-11T12:06:09.446104022Z",
+  "stepDetails": {
+      "destination": {
+          "auth": {
+              "method": "ClientSecret"
+          },
+          "path": "test-filemanager/Pool/fm-v0-11-0/10",
+          "protocol": "azure-datalake"
+      }
+  },
+  "sourceStepId": "COPY1",
+  "sourceSystem": "CIRCL_2",
+  "schemaVersion": "0.2.0",
+  "statusUpdateId": "59375520-9aa2-49f6-8455-3d3c154d1a9f",
+  "sourceRequestId": "filemanager-v0.11.0-202609111405",
+  "fileManagerStepId": "12",
+  "fileManagerRequestId": "12"
+}

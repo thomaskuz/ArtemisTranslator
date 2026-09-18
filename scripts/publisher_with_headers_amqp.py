@@ -100,7 +100,7 @@ class PublisherWithHeaders(MessagingHandler):
 def main():
     # Configuration
     broker = "amqp://admin:admin@localhost:5672"
-    address = "amqp-mqtt-bridge"
+    address = "AMQP.MQTT.FAB.TEST"
 
     try:
         handler = PublisherWithHeaders(broker, address)

@@ -282,6 +282,215 @@ or
 
 ---
 
+## Alternate Flow: setupAmqpProperties.js — Header-in-Payload → Header-in-Header (AMQP → AMQP)
+
+### Purpose
+Deviation from Node 3 (`setupCloudEvent.js`) for a pure **AMQP → AMQP republish** flow — no CloudEvent envelope, no MQTT. Reuses `prepareBody.js` (Node 2) unchanged as its input stage. Named "header-in-payload → header-in-header" because the source message's `header` object — which arrives nested inside the AMQP payload's body — is promoted to a real AMQP `application_properties` header field, **while also staying in place inside the body** as its own `header` key. The same header data ends up addressable both ways: as broker-level AMQP properties (filterable via selectors) and embedded in the payload body (for consumers that read metadata from the body instead).
+
+```
+AMQP In  →  prepareBody.js  →  setupAmqpProperties.js  →  amqp-send
+(FM2)        (Parse JSON)      (header → application_properties,
+                                 header stays in body too)
+```
+
+### Input Contract
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `msg.parsedBody` | Object | ✅ Yes | From `prepareBody.js` (Node 2), unchanged |
+| `msg.parsedBody.header` | Object | ❌ No | Any shape — field-agnostic, no hardcoded key names |
+
+### Processing Rules
+
+1. **Validate:** Check `msg.parsedBody` exists
+2. **Promote header → application properties:** Copy every key in `msg.parsedBody.header` into a new `application_properties` object (non-scalar values are JSON-stringified)
+3. **Lift correlation id:** Search `header`'s keys case/separator-insensitively for a correlation-id-like field (matches `correlationId`, `correlationID`, `correlation_id`, `Correlation-Id`, ...) and set it as the standard AMQP `correlation_id` property too
+4. **Build body:** `header` stays inside the body by default (`KEEP_HEADER_IN_BODY = true`) — same data as `application_properties`, just also embedded in the payload
+5. **Wrap for amqp-send:** `node-red-contrib-rhea`'s `amqp-send` node reads the whole AMQP message as one object on `msg.payload` — `body`, `application_properties`, `correlation_id`, `content_type` as sibling keys (confirmed against the Artemis console; see `guides/amqp-message-fields-nodered.md`)
+6. **Clean up:** Drop `msg.rawBody` / `msg.parsedBody` / `msg.bodyParsed` — their data now lives in `msg.payload`
+
+### Output Contract
+
+| Field | Type | Description |
+|-------|------|--------------|
+| `msg.payload.body` | Object | The full parsed body, `header` included |
+| `msg.payload.application_properties` | Object | Same fields as `body.header`, promoted to AMQP application properties |
+| `msg.payload.correlation_id` | String | Only set if a correlation-id-like field was found in `header` |
+| `msg.payload.content_type` | String | `"application/json"` |
+
+### Example Transformation
+
+**Input (`msg.parsedBody`):**
+```json
+{
+  "header": {
+    "correlationSystem": "CIRCL_2",
+    "correlationId": "62",
+    "publisherSystem": "FILEMANAGER01",
+    "messageType": "FileManagerRequestStatusUpdateMessage",
+    "messageVersion": "0.2.0"
+  },
+  "status": "ERROR",
+  "error": {
+    "code": "EACCES",
+    "message": "Permission denied"
+  }
+}
+```
+
+**Output (`msg.payload`):**
+```json
+{
+  "body": {
+    "header": {
+      "correlationSystem": "CIRCL_2",
+      "correlationId": "62",
+      "publisherSystem": "FILEMANAGER01",
+      "messageType": "FileManagerRequestStatusUpdateMessage",
+      "messageVersion": "0.2.0"
+    },
+    "status": "ERROR",
+    "error": { "code": "EACCES", "message": "Permission denied" }
+  },
+  "application_properties": {
+    "correlationSystem": "CIRCL_2",
+    "correlationId": "62",
+    "publisherSystem": "FILEMANAGER01",
+    "messageType": "FileManagerRequestStatusUpdateMessage",
+    "messageVersion": "0.2.0"
+  },
+  "correlation_id": "62",
+  "content_type": "application/json"
+}
+```
+
+### Field Mapping: Header-in-Payload → Header-in-Header
+
+| Source | Target | Transformation |
+|--------|--------|-----------------|
+| `msg.parsedBody.header.*` | `msg.payload.application_properties.*` | Copied field-agnostic, non-scalars stringified |
+| `msg.parsedBody.header.*` | `msg.payload.body.header.*` | Unchanged, stays in place (not moved, not removed) |
+| `msg.parsedBody.header.<correlation-id-like key>` | `msg.payload.correlation_id` | Regex-matched key, promoted to standard AMQP property |
+| `msg.parsedBody` (minus none — header stays) | `msg.payload.body` | Passed through as-is |
+
+### Confirmed Working
+
+Verified against the live Artemis broker (console message view): `applicationProperties.*` entries populate correctly for every `header` field, and `properties.correlationId` / `properties.contentType` show the promoted values — this required the exact nesting shown above (everything inside `msg.payload`), not a flat `msg.applicationProperties`/`msg.correlation_id`.
+
+### Related Files
+- Implementation: `NodeRedScripts/setupAmqpProperties.js`
+- Reverse flow (application_properties → header, for received messages): `NodeRedScripts/copyPropertiesToHeader.js`
+- Field mapping reference: `guides/amqp-message-fields-nodered.md`
+
+---
+
+## Alternate Flow: copyPropertiesToHeader.js — Header-in-Header → Header-in-Payload (AMQP → AMQP)
+
+### Purpose
+Reverse of the flow above. Takes an AMQP message straight from `amqp-recv` — where the metadata already lives purely as broker-level AMQP `application_properties` ("header-in-header": a header that exists only as an AMQP header/property, not embedded anywhere in the payload) — and copies it into a `header` object placed **inside the body**, so the same data also becomes part of the payload ("header-in-payload"). Republishes via `amqp-send`.
+
+```
+amqp-recv  →  copyPropertiesToHeader.js  →  amqp-send
+(application_properties    (application_properties → body.header,
+ only, no header in body)   application_properties also carried through)
+```
+
+### Input Contract
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `msg.payload.application_properties` | Object | ❌ No | Flat key/value, as delivered by `amqp-recv` |
+| `msg.payload.body` | Object or String | ❌ No | The message body — parsed if it's a JSON string |
+| `msg.payload.correlation_id` | String | ❌ No | Added to `header` only if no `application_properties` field already looks like a correlation id |
+
+### Processing Rules
+
+1. **Normalize body:** Accept `msg.payload.body` as object or JSON string; parse strings, fall back to `{ data: body }` if not valid JSON
+2. **Copy application properties → header:** Field-agnostic — copies whatever keys `application_properties` has, no hardcoded names
+3. **Lift correlation id:** If `msg.payload.correlation_id` is set and no `application_properties` field already matches a correlation-id pattern (case/separator-insensitive), add it into `header` as `correlationId`
+4. **Embed header in body:** Set `body.header = header`
+5. **Wrap for amqp-send:** Rebuild `msg.payload` with `body` and `application_properties` (carried through unchanged) as sibling keys, plus `correlation_id`/`content_type` if present on the incoming message — same contract `amqp-send` requires (see `guides/amqp-message-fields-nodered.md`)
+6. **Clean up:** Drop `msg.rawBody` / `msg.parsedBody` / `msg.bodyParsed` if present from an upstream `prepareBody.js`
+
+### Output Contract
+
+| Field | Type | Description |
+|-------|------|--------------|
+| `msg.payload.body.header` | Object | Same fields as `application_properties`, now embedded in the body |
+| `msg.payload.application_properties` | Object | Carried through unchanged, for `amqp-send` |
+| `msg.payload.correlation_id` | String | Carried over, if present on the incoming message |
+| `msg.payload.content_type` | String | Carried over, if present on the incoming message |
+
+### Example Transformation
+
+**Input (`msg.payload`, as delivered by `amqp-recv`):**
+```json
+{
+  "application_properties": {
+    "correlationSystem": "CIRCL_2",
+    "correlationId": 62,
+    "publisherSystem": "FILEMANAGER01",
+    "messageType": "FileManagerRequestStatusUpdateMessage",
+    "messageVersion": "0.2.0"
+  },
+  "correlation_id": "62",
+  "content_type": "application/json",
+  "body": {
+    "schemaVersion": "0.2.0",
+    "statusUpdateId": "af9070b2-ff63-4187-a2b5-f0b3fda793a8",
+    "status": "ERROR"
+  }
+}
+```
+
+**Output (`msg.payload`):**
+```json
+{
+  "body": {
+    "schemaVersion": "0.2.0",
+    "statusUpdateId": "af9070b2-ff63-4187-a2b5-f0b3fda793a8",
+    "status": "ERROR",
+    "header": {
+      "correlationSystem": "CIRCL_2",
+      "correlationId": 62,
+      "publisherSystem": "FILEMANAGER01",
+      "messageType": "FileManagerRequestStatusUpdateMessage",
+      "messageVersion": "0.2.0"
+    }
+  },
+  "application_properties": {
+    "correlationSystem": "CIRCL_2",
+    "correlationId": 62,
+    "publisherSystem": "FILEMANAGER01",
+    "messageType": "FileManagerRequestStatusUpdateMessage",
+    "messageVersion": "0.2.0"
+  },
+  "correlation_id": "62",
+  "content_type": "application/json"
+}
+```
+
+### Field Mapping: Header-in-Header → Header-in-Payload
+
+| Source | Target | Transformation |
+|--------|--------|-----------------|
+| `msg.payload.application_properties.*` | `msg.payload.body.header.*` | Copied field-agnostic, no hardcoded keys |
+| `msg.payload.application_properties.*` | `msg.payload.application_properties.*` | Carried through unchanged (not moved, not removed) |
+| `msg.payload.correlation_id` | `msg.payload.body.header.correlationId` | Only added if no `application_properties` field already matches a correlation-id pattern |
+| `msg.payload.correlation_id` / `content_type` | Same, top-level `msg.payload` | Carried through unchanged, if present |
+
+### Confirmed Working
+
+Verified against the live Artemis broker the same way as `setupAmqpProperties.js`: `body`/`application_properties` must be nested inside `msg.payload` as sibling keys for `amqp-send` to actually publish them — an earlier flattened attempt (data split across `msg.applicationProperties` and a flattened `msg.payload`) produced a null body and no `applicationProperties.*` entries on the broker.
+
+### Related Files
+- Implementation: `NodeRedScripts/copyPropertiesToHeader.js`
+- Debug/test injector (simulates `amqp-recv` output): `NodeRedScripts/debugInjectAmqpProperties.js`
+- Forward flow (header → application_properties, for outbound messages): `NodeRedScripts/setupAmqpProperties.js`
+- Field mapping reference: `guides/amqp-message-fields-nodered.md`
+
+---
+
 ## Node 4: Store & Forward (Function) [PRODUCTION]
 
 ### Purpose

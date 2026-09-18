@@ -91,7 +91,7 @@ def main():
     # Configuration
     broker = "localhost"
     port = 1883  # Artemis MQTT port
-    topic = "fromAppToE3"  # Subscribe to bridge multicast address
+    topic = "AMQP/MQTT/FAB/TEST"  # Subscribe to bridge multicast address
 
     print(f"[...] Starting MQTT Subscriber")
     print(f"[...] Will subscribe to: {topic}")

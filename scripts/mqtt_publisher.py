@@ -123,7 +123,7 @@ def main():
     # Configuration
     broker = "localhost"
     port = 1883
-    topic = "mqtt-queue"  # Publish to same topic as bridge
+    topic = "MQTT/AMQP/FAB/TEST"  # Publish to same topic as bridge
 
     print(f"[...] Starting MQTT Publisher\n")
 
