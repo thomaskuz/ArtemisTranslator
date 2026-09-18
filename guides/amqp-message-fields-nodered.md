@@ -277,13 +277,15 @@ Everything above describes how **this specific NodeRed setup** (`node-red-contri
 
 Same protocol, same broker, two different representations. **Never assume a message shape "because it's AMQP" — check the specific library/node in use.** The Artemis-console round-trip (publish → browse the queue → inspect Headers/Properties) is the fastest way to confirm a given node's actual contract before building more flow logic on top of an assumption.
 
-**Artemis does not auto-translate properties across protocols.** Publishing via AMQP with `application_properties` set does **not** automatically make those appear as MQTT v5 User Properties on a bridged MQTT subscriber, and the reverse is also true — Artemis's built-in AMQP↔MQTT bridging only reliably carries the message **body** across protocols. Getting `application_properties` ↔ `userProperties` translated requires an explicit NodeRed step that reads one and sets the other (exactly what `mesMQTTPublisher.js` does for the E3 flow) — there's no broker-level setting that does this automatically.
+**Artemis does not auto-translate properties across protocols.** Publishing via AMQP with `application_properties` set does **not** automatically make those appear as MQTT v5 User Properties on a bridged MQTT subscriber, and the reverse is also true — Artemis's built-in AMQP↔MQTT bridging only reliably carries the message **body** across protocols. Getting `application_properties` ↔ `userProperties` translated requires an explicit NodeRed step that reads one and sets the other (exactly what `mesAmqpToMqttPublisher.js` does for the E3 flow) — there's no broker-level setting that does this automatically.
 
 ---
 
 ## Related Files
 
-- Function node source: `NodeRedScripts/mesMQTTPublisher.js`
+- Function node source (production, real AMQP data): `NodeRedScripts/mesAmqpToMqttPublisher.js`
+- Function node source (superseded demo, hardcoded data): `NodeRedScripts/mesMQTTPublisher.js`
 - AMQP-only republish flow: `NodeRedScripts/setupAmqpProperties.js`, `NodeRedScripts/copyPropertiesToHeader.js`
 - Setup guide: `guides/nodered-mes-mqtt-publisher.md`
+- Full input/output contracts for every node: `DataContracts.md`
 - Example payload: `ExampleMessages/DestinationMessages/MES_TrackIn_v1.json`

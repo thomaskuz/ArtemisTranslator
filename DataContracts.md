@@ -704,6 +704,101 @@ v1.0/IMEC/Leuven/Cleanroom/Systema/Artemis/Dev/FileActionStatusChanged
 
 ---
 
+## Alternate Flow: mesAmqpToMqttPublisher.js — MES AMQP → MQTT (E3 Integration)
+
+### Purpose
+A separate pipeline from the main FASC flow above — transforms a real incoming AMQP message into the MES TrackIn CloudEvent + MQTT v5 property shape E3 requires. Production replacement for the older `mesMQTTPublisher.js`, which fabricated all its data from a hardcoded demo payload (see that node's entry below for what was hardcoded vs. what's genuinely required by E3).
+
+```
+amqp-recv → mesAmqpToMqttPublisher.js → MQTT Out (v5)
+```
+
+Single self-contained Function node — unlike the main pipeline, there's no separate "parse" step feeding into it, since `amqp-recv`'s output shape is simple enough to normalize inline.
+
+### Input Contract
+
+| Field | Type | Required | Description |
+|-------|------|----------|--------------|
+| `msg.payload` | Object or String | ✅ Yes | From `amqp-recv` — normalized first: parsed if the whole message arrived as a stringified JSON blob |
+| `msg.payload.application_properties` | Object | ❌ No | Field-agnostic — whatever the source system set, defaults to `{}` |
+| `msg.payload.correlation_id` | String | ❌ No | Real AMQP correlation-id; only promoted to `msg.correlationData` if present |
+| `msg.payload.body` | Object or String | ❌ No | The actual MES data; normalized (parsed if a JSON string) before use |
+
+### Processing Rules
+
+1. **Normalize `msg.payload`** — parse if it's a string, so the rest of the function always has an object to work with
+2. **Normalize `msg.payload.body`** — same treatment
+3. **Build `mesPayload`** — same `{ "MES_Data": { ...CloudEvent envelope..., data: <body> } }` shape as `mesMQTTPublisher.js` used, but `data` is the real AMQP body, and `id`/`time` are freshly generated per message
+4. **Set MQTT v5 predefined properties** — `contentType`, `correlationData` (from real `correlation_id`, guarded), `messageExpiryInterval`, `payloadFormatIndicator`
+5. **Build `userProperties`** — spread `application_properties` first (field-agnostic), then the four static E3-required properties last, so they win on any key collision
+
+### Output Contract
+
+| Field | Type | Description |
+|-------|------|--------------|
+| `msg.payload` | Object | `mesPayload` — the `MES_Data` CloudEvent wrapper, real body as `data` |
+| `msg.topic` | String | `"fromAppToE3"` |
+| `msg.contentType` | String | `"application/json"` |
+| `msg.correlationData` | String | From `msg.payload.correlation_id`, only if present |
+| `msg.messageExpiryInterval` | Number | `3600` (seconds) |
+| `msg.payloadFormatIndicator` | Number | `1` (UTF-8 text) |
+| `msg.userProperties` | Object | AMQP `application_properties` merged with the 4 static E3-required properties |
+
+### Confirmed E3-Required Fields (validated against real E3 rejections during earlier development)
+
+| Field | Value | Why |
+|---|---|---|
+| `msg.topic` | `"fromAppToE3"` | E3's actual subscription topic |
+| `msg.contentType` | `"application/json"` | E3 explicitly checks this |
+| `msg.correlationData` | unique ID | E3 requires it present |
+| `userProperties["action-name"]` | `"TRACKIN"` | Event type routing |
+| `userProperties["application-name"]` | `"E3_MES_Integration"` | **Underscores, not spaces** — literal cause of an earlier E3 rejection bug |
+| `userProperties["source"]` | `"MES"` | Origin identification |
+| `userProperties["status"]` | `"200"` | E3-expected status convention |
+
+### Related Files
+- Implementation: `NodeRedScripts/mesAmqpToMqttPublisher.js`
+- Superseded demo version: `NodeRedScripts/mesMQTTPublisher.js`
+- Setup guide: `guides/nodered-mes-mqtt-publisher.md`
+
+---
+
+## Node 8: mesMQTTPublisher.js (Function) — Superseded Demo Version
+
+### Purpose
+Standalone test/demo publisher — **not fed by AMQP at all**, triggered manually by an Inject node. Generates a fully hardcoded MES TrackIn CloudEvent on every trigger. Historically useful for validating the E3 property contract in isolation before a real AMQP source existed; superseded by `mesAmqpToMqttPublisher.js` above once verified against real traffic.
+
+```
+Inject → mesMQTTPublisher.js → MQTT Out (v5)
+```
+
+### Input Contract
+
+| Field | Required? | Notes |
+|---|---|---|
+| *(none)* | — | Reads nothing off the incoming `msg` — pure generator, not a transformer |
+
+### What's Hardcoded vs. Genuinely Required
+
+Only a subset of the hardcoded fields are actually necessary; the rest is fabricated demo business data:
+
+| Category | Fields | Notes |
+|---|---|---|
+| **E3-required** (see table above) | `topic`, `contentType`, `correlationData`, all 4 `userProperties` | Confirmed via real E3 rejections |
+| **CloudEvents/schema convention** | `specversion`, `datacontenttype`, `type`, `dataschema`, `data.schemaVersion`, `data.eventType`, `data.sourceSystem` | Fixed per event type, not individually verified against E3 but shouldn't change without reason |
+| **Pure demo filler** | `data.sourceCorrelationId`, `toolName`, `carrierId`, `lotName`, `product`, `flowName`, `flowRecipe`, `substrates`, etc. | Arbitrary fabricated values — `sourceCorrelationId` is the clearest example, a hardcoded static UUID that should vary per real transaction |
+
+### Output Contract
+
+Same shape as `mesAmqpToMqttPublisher.js`'s output (see above), except `msg.payload.MES_Data.data` is always the same fabricated demo content rather than real AMQP data, and `msg.payload` is **not** stringified (relies on MQTT Out's implicit object-to-JSON auto-conversion, unlike `setupCloudEvent.js` which stringifies explicitly).
+
+### Related Files
+- Implementation: `NodeRedScripts/mesMQTTPublisher.js`
+- Production replacement: `NodeRedScripts/mesAmqpToMqttPublisher.js`
+- Setup guide: `guides/nodered-mes-mqtt-publisher.md`
+
+---
+
 ## Complete End-to-End Example
 
 ### 1. Message Arrives at AMQP In
@@ -805,11 +900,20 @@ Same (within rate limit)
 | Document | Purpose |
 |----------|---------|
 | `ExampleMessages/SourceMessages/FM2/v260819` | Input example (FM2 format) |
+| `ExampleMessages/SourceMessages/FM2/AMQPNR_v260819` | Real captured amqp-recv output (node-red-contrib-rhea shape) |
 | `ExampleMessages/DestinationMessages/FASC_260819.json` | Output example (CloudEvent format) |
+| `ExampleMessages/DestinationMessages/MES_TrackIn_v1.json` | Output example (MES TrackIn CloudEvent format) |
 | `NodeRedScripts/prepareBody.js` | Body parsing implementation |
 | `NodeRedScripts/setupCloudEvent.js` | CloudEvent creation implementation |
 | `NodeRedScripts/StoreForward.js` | Queueing logic implementation |
 | `NodeRedScripts/StatusCheck.js` | Connection monitoring implementation |
+| `NodeRedScripts/setupAmqpProperties.js` | AMQP-only republish: header → application_properties |
+| `NodeRedScripts/copyPropertiesToHeader.js` | AMQP-only republish: application_properties → header (reverse) |
+| `NodeRedScripts/debugInjectAmqpProperties.js` | Test injector for the reverse AMQP flow |
+| `NodeRedScripts/mesAmqpToMqttPublisher.js` | MES AMQP → MQTT, production (real data) |
+| `NodeRedScripts/mesMQTTPublisher.js` | MES AMQP → MQTT, superseded demo (hardcoded data) |
+| `guides/amqp-message-fields-nodered.md` | AMQP/MQTT field mapping reference, confirmed against the live broker |
+| `guides/nodered-mes-mqtt-publisher.md` | MES → E3 flow setup guide |
 
 ---
 
@@ -818,6 +922,7 @@ Same (within rate limit)
 | Date | Version | Changes |
 |------|---------|---------|
 | 2026-08-21 | 1.0 | Initial contract specification |
+| 2026-09-18 | 1.1 | Added alternate flows: setupAmqpProperties.js / copyPropertiesToHeader.js (AMQP-only republish, header-in-payload ↔ header-in-header), mesAmqpToMqttPublisher.js (production MES→E3 replacing hardcoded mesMQTTPublisher.js). Documented confirmed node-red-contrib-rhea msg.payload nesting contract. |
 
 ---
 

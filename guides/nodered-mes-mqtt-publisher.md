@@ -1,17 +1,76 @@
 # NodeRed MES MQTT Publisher Guide
 
-Simple NodeRed flow to publish MES TrackIn events with proper MQTT metadata to E3 system.
+NodeRed flows to publish MES TrackIn events with proper MQTT v5 metadata to the E3 system. Two versions exist:
 
-## Flow Architecture
+- **`mesAmqpToMqttPublisher.js`** (recommended) — sources real data from an incoming AMQP message
+- **`mesMQTTPublisher.js`** (demo/testing) — fabricates a fixed demo payload on manual trigger, no AMQP source needed
+
+Use the demo version for isolated testing of the E3 property contract without a live AMQP source; use the production version once you have a real AMQP message stream to transform.
+
+---
+
+## Production Flow: mesAmqpToMqttPublisher.js
+
+### Flow Architecture
+
+```
+[amqp-recv] → [MES AMQP-to-MQTT Publisher Function] → [MQTT Out]
+              (transforms real AMQP message)           (publishes)
+```
+
+### Setup
+
+#### Step 1: Create `amqp-recv` Node (node-red-contrib-rhea)
+
+1. Drag **amqp-recv** node to canvas
+2. Configure broker connection: `localhost:5672`, credentials `admin`/`admin`
+3. Set the source **address** (or `address::queue` — see `guides/amqp-multicast-anycast-behavior.md` for the distinction) carrying the real MES-related AMQP messages
+
+#### Step 2: Create Function Node (MES Publisher)
+
+1. Drag **Function** node to canvas
+2. Connect: **amqp-recv** → **Function**
+3. Paste entire code from `NodeRedScripts/mesAmqpToMqttPublisher.js`
+4. **Name:** "MES AMQP-to-MQTT Publisher"
+
+#### Step 3: Create MQTT Out Node (Publish)
+
+Same as the demo flow below — **Broker:** `localhost:1883`, **Username/Password:** `admin`/`admin`, **protocol version 5**, **Topic:** leave blank (function sets `msg.topic`), **QoS:** `1` recommended.
+
+#### Step 4: Deploy and Test
+
+1. Deploy the flow
+2. Send/receive a real AMQP message on the configured address
+3. Verify the transformed message reaches `fromAppToE3` — see Testing section below
+
+### What the Function Does
+
+- **Normalizes `msg.payload`** — handles both object and stringified-JSON forms from `amqp-recv` (see `DataContracts.md` for the full input contract)
+- **Wraps the real AMQP body** in the same `MES_Data` CloudEvent envelope the demo version used, but `data` is the actual message content instead of fabricated fields
+- **Promotes AMQP `application_properties` → MQTT `userProperties`**, field-agnostic
+- **Promotes AMQP `correlation_id` → MQTT `correlationData`**
+- **Merges in the 4 static E3-required properties** (see below) — added last, so they win on any key collision with the real AMQP properties
+
+### Input/Output Contracts
+
+Full data models, requirements, and step-by-step traces (including a worked example against `ExampleMessages/SourceMessages/FM2/AMQPNR_v260819`): see `DataContracts.md` → "Alternate Flow: mesAmqpToMqttPublisher.js".
+
+---
+
+## Demo/Testing Flow: mesMQTTPublisher.js
+
+### Flow Architecture
 
 ```
 [Inject] → [MES MQTT Publisher Function] → [MQTT Out]
-            (Creates payload + properties)   (Publishes)
+            (Creates fixed demo payload)    (Publishes)
 ```
 
-## Setup
+No AMQP source needed — useful for testing the E3 property contract in isolation.
 
-### Step 1: Create Inject Node (Trigger)
+### Setup
+
+#### Step 1: Create Inject Node (Trigger)
 
 1. Drag **Inject** node to canvas
 2. Double-click to configure:
@@ -19,7 +78,7 @@ Simple NodeRed flow to publish MES TrackIn events with proper MQTT metadata to E
    - **Payload:** Leave default (timestamp)
 3. Click **Done**
 
-### Step 2: Create Function Node (MES Publisher)
+#### Step 2: Create Function Node (MES Publisher)
 
 1. Drag **Function** node to canvas
 2. Connect: **Inject** → **Function**
@@ -27,7 +86,7 @@ Simple NodeRed flow to publish MES TrackIn events with proper MQTT metadata to E
 4. **Name:** "MES MQTT Publisher"
 5. Click **Done**
 
-### Step 3: Create MQTT Out Node (Publish)
+#### Step 3: Create MQTT Out Node (Publish)
 
 1. Drag **MQTT Out** node to canvas
 2. Connect: **Function** → **MQTT Out**
@@ -35,12 +94,13 @@ Simple NodeRed flow to publish MES TrackIn events with proper MQTT metadata to E
    - **Broker:** `localhost:1883` (or configure new)
    - **Username:** `admin`
    - **Password:** `admin`
-   - **Topic:** `fromAppToE3` (or leave blank to use msg.topic from function)
-   - **QoS:** `0` (fire-and-forget)
+   - **Protocol Version:** `5` (MQTT v5 — required for `contentType`/`correlationData`/`userProperties` to actually transmit)
+   - **Topic:** leave blank (function sets `msg.topic`)
+   - **QoS:** `0` or `1`
    - **Retain:** `false`
 4. Click **Done**
 
-### Step 4: Deploy and Test
+#### Step 4: Deploy and Test
 
 1. Click **Deploy** (red button, top right)
 2. Click the **Inject** node to trigger
@@ -49,9 +109,9 @@ Simple NodeRed flow to publish MES TrackIn events with proper MQTT metadata to E
 
 ---
 
-## Complete Flow Code (Copy-Paste)
+## Complete Flow Code (Copy-Paste) — Demo Version
 
-If you want to import the flow directly:
+If you want to import the demo flow directly:
 
 ```json
 [
@@ -112,7 +172,7 @@ If you want to import the flow directly:
     "clientid": "nodered-mes-publisher",
     "autoConnect": true,
     "usetls": false,
-    "protocolVersion": "4",
+    "protocolVersion": "5",
     "keepalive": "60",
     "cleansession": true,
     "birthTopic": "",
@@ -134,42 +194,50 @@ If you want to import the flow directly:
 
 ---
 
-## What the Function Does
+## What the Demo Function Does
 
-### Creates MES Payload
+### Creates MES Payload (fixed demo data)
 ```javascript
 msg.payload = {
   "MES_Data": {
     "specversion": "1.0",
     "type": "imec.mes.trackin",
-    ...
-    "data": { /* Full MES TrackIn data */ }
+    "...": "...",
+    "data": { /* Fixed demo MES TrackIn data - toolName, lotName, etc. */ }
   }
 }
 ```
 
 ### Sets MQTT Topic
 ```javascript
-msg.topic = "fromAppToE3"  // Topic for MQTT publish
+msg.topic = "fromAppToE3"
 ```
 
-### Sets User Properties (Metadata)
+### Sets MQTT v5 Predefined Properties
 ```javascript
-msg.properties = {
-  "Content-Type": "application/json",      // ← Required by E3
-  "Correlation-Data": msgId,                // ← Required by E3 (unique ID)
+msg.contentType = "application/json";           // ← Required by E3
+msg.correlationData = msgId;                     // ← Required by E3 (unique ID)
+msg.messageExpiryInterval = 3600;
+msg.payloadFormatIndicator = 1;
+```
+
+### Sets User Properties (Custom Metadata)
+```javascript
+msg.userProperties = {
   "action-name": "TRACKIN",
-  "application-name": "E3_MES_Integration", // ← Note: underscores, not spaces!
+  "application-name": "E3_MES_Integration",   // ← Note: underscores, not spaces!
   "source": "MES",
   "status": "200"
-}
+};
 ```
 
-**Required by E3:**
-- `Content-Type`: Must be `application/json`
-- `Correlation-Data`: Unique message ID for tracking
+**Note:** predefined properties (`contentType`, `correlationData`, etc.) and custom `userProperties` are two **separate** `msg` fields, not one combined object — this is how MQTT v5 itself distinguishes them on the wire. See `guides/amqp-message-fields-nodered.md` for the full property-type breakdown.
 
-**Custom properties:**
+**Required by E3:**
+- `msg.contentType` — must be `application/json`
+- `msg.correlationData` — unique message ID for tracking
+
+**Custom properties (`userProperties`):**
 - `action-name`: Type of action (TRACKIN)
 - `application-name`: **E3_MES_Integration** (with underscores!)
 - `source`: Identifies as coming from MES
@@ -177,12 +245,13 @@ msg.properties = {
 
 ---
 
-## Customization
+## Customization (Demo Version Only)
+
+The demo version's data is fully hardcoded — customize it directly in the function:
 
 ### Change Tool Name
-Edit in function:
 ```javascript
-"toolName": "YOUR_TOOL_NAME",  // Change this
+"toolName": "YOUR_TOOL_NAME",
 ```
 
 ### Change Lot Name
@@ -204,25 +273,27 @@ Edit in function:
 ### Change Wafer Count
 Modify the `slotMapContent` array and `substrates` array (each has 25 slots by default).
 
+For the **production version**, customization isn't needed here — the actual data comes from the real AMQP message instead.
+
 ---
 
 ## Testing with MQTT Subscriber
 
-While the flow is running, in another terminal:
+While either flow is running, in another terminal:
 ```bash
 python scripts/mqtt_subscriber.py
 ```
 
-You should see MES TrackIn messages published to `fromAppToE3` topic.
+You should see MES TrackIn messages published to the `fromAppToE3` topic, including the `Properties (MQTT Metadata)` block showing `userProperties` and predefined properties.
 
 ---
 
 ## Integration with E3
 
-The E3 system will read:
+The E3 system reads:
 - **Topic:** `fromAppToE3` (routing)
-- **Properties:** `action-name`, `application-name`, `source`, `status`
-- **Payload:** MES_Data JSON with complete event information
+- **Properties:** `action-name`, `application-name`, `source`, `status` (via `userProperties`), plus `contentType`/`correlationData` (predefined properties)
+- **Payload:** `MES_Data` JSON with complete event information
 
 E3 uses the `source: "MES"` property to identify this came from the MES system.
 
@@ -230,9 +301,12 @@ E3 uses the `source: "MES"` property to identify this came from the MES system.
 
 ## Related Files
 
-- Source code: `NodeRedScripts/mesMQTTPublisher.js`
+- Production implementation: `NodeRedScripts/mesAmqpToMqttPublisher.js`
+- Demo/testing implementation: `NodeRedScripts/mesMQTTPublisher.js`
+- Full input/output contracts: `DataContracts.md`
+- AMQP/MQTT field mapping reference: `guides/amqp-message-fields-nodered.md`
 - Example payload: `ExampleMessages/DestinationMessages/MES_TrackIn_v1.json`
-- Full MQTT guide: `guides/nodered-mqtt-publisher.md`
+- Real captured AMQP input example: `ExampleMessages/SourceMessages/FM2/AMQPNR_v260819`
 
 ---
 
@@ -242,13 +316,19 @@ E3 uses the `source: "MES"` property to identify this came from the MES system.
 - ✅ Check MQTT broker connection (yellow indicator)
 - ✅ Verify credentials: `admin:admin`
 - ✅ Check topic name matches E3 expectation
+- ✅ Confirm MQTT Out node is set to **protocol version 5** — v3.1.1 silently drops `contentType`/`correlationData`/`userProperties`
 
 ### E3 not receiving messages
 - ✅ Verify `source` property is set to `"MES"`
 - ✅ Check topic is `"fromAppToE3"`
+- ✅ Verify `application-name` uses underscores, not spaces
 - ✅ Verify payload format matches schema
 
+### Production flow: userProperties/correlationData missing
+- ✅ Confirm the upstream AMQP message actually has `application_properties`/`correlation_id` set — `mesAmqpToMqttPublisher.js` only promotes what's present, it doesn't fabricate them
+- ✅ Check `amqp-recv`'s output shape in a Debug node against the input contract in `DataContracts.md`
+
 ### Function has syntax errors
-- ✅ Copy entire code from `mesMQTTPublisher.js`
+- ✅ Copy the entire code from the relevant script file
 - ✅ Check for missing quotes or brackets
 - ✅ Validate JSON structure in payload

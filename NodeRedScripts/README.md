@@ -127,6 +127,42 @@ MQTT Out (Mosquitto/HiveMQ)
 
 ---
 
+## Alternate Flows
+
+Two other flows live in this directory, both built off the same `prepareBody.js`/AMQP-receiver foundation but skipping the CloudEvent/MQTT path above.
+
+### AMQP → AMQP Republish (no CloudEvent, no MQTT)
+
+```
+amqp-recv → prepareBody.js → setupAmqpProperties.js → amqp-send
+amqp-recv → copyPropertiesToHeader.js → amqp-send   (reverse direction)
+```
+
+Deviation for messages that stay entirely on the AMQP bus. Instead of wrapping data in a CloudEvent envelope, the source message's `header` object is promoted to real AMQP `application_properties` — filterable via selectors — while staying embedded in the body too ("header-in-payload → header-in-header"). `copyPropertiesToHeader.js` does the reverse: takes a message whose metadata is only in `application_properties` and embeds it into the body as `header` as well.
+
+**Important (node-red-contrib-rhea specific):** `amqp-send`/`amqp-recv` require the entire AMQP message as ONE object on `msg.payload` — `body`, `application_properties`, `correlation_id`, `content_type` as sibling keys, NOT flat on `msg`. See `guides/amqp-message-fields-nodered.md` for the full field mapping, confirmed against the live Artemis broker.
+
+- `setupAmqpProperties.js` — forward direction (header → application_properties)
+- `copyPropertiesToHeader.js` — reverse direction (application_properties → header in body)
+- `debugInjectAmqpProperties.js` — test helper simulating `amqp-recv` output, for wiring straight into `copyPropertiesToHeader.js` without a live broker message
+
+Full data contracts (input models, requirements, step-by-step): see `DataContracts.md`.
+
+### MES AMQP → MQTT (E3 integration)
+
+```
+amqp-recv → mesAmqpToMqttPublisher.js → MQTT Out (v5)
+```
+
+Transforms a real AMQP message into the MES TrackIn CloudEvent + MQTT v5 property shape E3 requires: AMQP `application_properties` → MQTT `userProperties`, AMQP `correlation_id` → MQTT `correlationData`, the real AMQP body → `MES_Data.data`. The four E3-required static properties (`action-name`, `application-name`, `source`, `status`) are merged in alongside whatever the AMQP message itself carries.
+
+- `mesAmqpToMqttPublisher.js` — production version, sources real data from AMQP
+- `mesMQTTPublisher.js` — older, hardcoded demo/test version (Inject-triggered, fabricated MES data) — kept for reference/isolated E3-property testing, superseded by `mesAmqpToMqttPublisher.js` once verified against real traffic
+
+Setup guide: `../guides/nodered-mes-mqtt-publisher.md`
+
+---
+
 ## Message Structure References
 
 ### Source Format: FM2/v260819
@@ -312,19 +348,37 @@ Retain: false
 
 ## Files in This Directory
 
+**Main pipeline (AMQP → MQTT CloudEvent):**
 - `prepareBody.js` — Body extraction and recursive JSON parsing
 - `setupCloudEvent.js` — CloudEvent creation (FASC format)
 - `StoreForward.js` — Message queueing during disconnection
 - `StatusCheck.js` — Connection monitoring and gate control
+
+**AMQP-only republish flow:**
+- `setupAmqpProperties.js` — header → application_properties (forward)
+- `copyPropertiesToHeader.js` — application_properties → header in body (reverse)
+- `debugInjectAmqpProperties.js` — test injector for the reverse flow
+
+**MES → E3 (MQTT):**
+- `mesAmqpToMqttPublisher.js` — production version, sources real AMQP data
+- `mesMQTTPublisher.js` — hardcoded demo/test version
+
 - `README.md` — This documentation
 
 ## Related Files
 
 **Source Examples:**
 - `../../ExampleMessages/SourceMessages/FM2/v260819` — FileManager status message
+- `../../ExampleMessages/SourceMessages/FM2/AMQPNR_v260819` — Real captured amqp-recv output (node-red-contrib-rhea shape)
 
 **Destination Examples:**
 - `../../ExampleMessages/DestinationMessages/FASC_260819.json` — CloudEvent output
+- `../../ExampleMessages/DestinationMessages/MES_TrackIn_v1.json` — MES TrackIn CloudEvent output
+
+**Data contracts and field mapping:**
+- `../DataContracts.md` — Full input/output contracts for every node, including the alternate flows
+- `../guides/amqp-message-fields-nodered.md` — AMQP/MQTT field mapping reference, confirmed against the live broker
+- `../guides/nodered-mes-mqtt-publisher.md` — MES → E3 flow setup guide
 
 ## Next Steps
 
